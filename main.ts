@@ -49,17 +49,18 @@ serve(async (req: Request) => {
 
         try {
             for (const subscriber of subscribers) {
-              await bot.sendMessage({
-                chat_id: subscriber,
-                text: 'Пришла заявка',
-              })
+              // await bot.sendMessage({
+              //   chat_id: subscriber,
+              //   text: 'Пришла заявка',
+              // })
               await bot.sendDocument({
                 chat_id: subscriber,
-                document: new File([blob], "telegram.png"),
+                document: blob,
                 thumb: "attach://file",
-                attachments: {
-                  file: blob,
-                },
+                caption: 'Пришла заявка',
+                // attachments: {
+                //   file: blob,
+                // },
               });
             }
 
