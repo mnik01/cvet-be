@@ -46,20 +46,24 @@ serve(async (req: Request) => {
     }
     if (req.method === 'POST') {
       try {
+        console.log(4);
         for (const subscriber of subscribers) {
           const f = await req.formData()
+          console.log(3);
           for (const attachment of f.entries()) {
+            console.log(2);
             const [name, blob] = attachment;
 
-            const a: any = {};
-            a[name] = blob;
-
+            // const a: any = {};
+            // a[name] = blob;
+            console.log(name, blob);
             await bot.sendDocument({
               chat_id: subscriber,
               document: new File([blob], name),
               caption: 'Пришла заявка',
-              attachments: a,
+              // attachments: a,
             });
+            console.log(1);
           }
         }
 
@@ -67,9 +71,9 @@ serve(async (req: Request) => {
             headers: corsHeaders,
             status: 200,
         })
-        } catch {
-            return new Response(null, { status: 500, statusText: 'Internal server error' })
-        }
+      } catch {
+        return new Response(null, { status: 500, statusText: 'Internal server error' })
+      }
 
     }
 
