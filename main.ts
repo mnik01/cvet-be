@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.145.0/http/server.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.0/load.ts";
 import {
     TelegramBot,
     UpdateType,
-} from "https://deno.land/x/telegram_bot_api/mod.ts";
+} from "https://deno.land/x/telegram_bot_api@0.4.0/mod.ts";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -11,31 +11,27 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "content-type",
 }
 
-
-
 const TOKEN = Deno.env.get("BOT_TOKEN");
 if (!TOKEN) throw new Error("Bot token is not provided");
 const bot = new TelegramBot(TOKEN);
 
-const subscribers: string[] = [];
+const subscribers: number[] = [];
 
 bot.on(UpdateType.Message, async ({ message }) => {
+  const { id } = message.chat;
 
-    console.log(subscribers)
-    console.log(message.chat.id)
-
-    if (subscribers.includes(message.chat.id)) {
-        bot.sendMessage({
-            chat_id: message.chat.id,
-            text: 'Вы уже подписаны на получение заявки для распечатки',
-        });
-    } else {
-        subscribers.push(message.chat.id)
-        bot.sendMessage({
-            chat_id: message.chat.id,
-            text: 'Теперь вы будете получать заявки на распечатку',
-        });
-    }
+  if (subscribers.includes(id)) {
+      await bot.sendMessage({
+          chat_id: id,
+          text: 'Вы уже подписаны на получение заявки для распечатки',
+      });
+  } else {
+      subscribers.push(id)
+      await bot.sendMessage({
+          chat_id: id,
+          text: 'Теперь вы будете получать заявки на распечатку',
+      });
+  }
 });
 
 bot.run({
@@ -46,30 +42,36 @@ bot.run({
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
         return new Response(null, { headers: corsHeaders })
-    };
+    }
     if (req.method === 'POST') {
         // const body = req.body;
-        // const blob = await req.blob();
+        const blob = await req.blob();
 
-        console.log(3)
         try {
-            console.log(2)
-            subscribers.forEach(subscriber => {
-                console.log(1)
-                bot.sendMessage({
-                    chat_id: subscriber,
-                    text: 'Пришла заявка',
-                });
-            })
+            for (const subscriber of subscribers) {
+              await bot.sendMessage({
+                chat_id: subscriber,
+                text: 'Пришла заявка',
+              })
+              await bot.sendDocument({
+                chat_id: subscriber,
+                document: new File([blob], "telegram.png"),
+                thumb: "attach://file",
+                attachments: {
+                  file: blob,
+                },
+              });
+            }
 
-            return new Response(JSON.stringify({}), {
+            return new Response(null, {
                 headers: corsHeaders,
+                status: 200,
             })
-        } catch (error) {
+        } catch {
             return new Response(null, { status: 500, statusText: 'Internal server error' })
         }
 
     }
 
-    return new Response(null)
+    return new Response(null, {status: 404, statusText: 'No such method'})
 });
