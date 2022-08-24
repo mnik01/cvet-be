@@ -45,28 +45,28 @@ serve(async (req: Request) => {
         return new Response(null, { headers: corsHeaders })
     }
     if (req.method === 'POST') {
-        const f = await req.formData()
+      try {
+        for (const subscriber of subscribers) {
+          const f = await req.formData()
+          for (const attachment of f.entries()) {
+            const [name, blob] = attachment;
 
-        for (const v of f.entries())
-            console.log(v);
+            const a: any = {};
+            a[name] = blob;
 
-        try {
-            for (const subscriber of subscribers) {
-              await bot.sendDocument({
-                chat_id: subscriber,
-                document: new File(['blob'], 'name.png'),
-                thumb: "attach://file",
-                caption: 'Пришла заявка',
-                // attachments: {
-                //   file: blob,
-                // },
-              });
-            }
+            await bot.sendDocument({
+              chat_id: subscriber,
+              document: new File([blob], name),
+              caption: 'Пришла заявка',
+              attachments: a,
+            });
+          }
+        }
 
-            return new Response(null, {
-                headers: corsHeaders,
-                status: 200,
-            })
+        return new Response(null, {
+            headers: corsHeaders,
+            status: 200,
+        })
         } catch {
             return new Response(null, { status: 500, statusText: 'Internal server error' })
         }
