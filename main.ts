@@ -46,7 +46,7 @@ serve(async (req: Request) => {
     }
     if (req.method === 'POST') {
       try {
-        console.log(4);
+        console.log(`subscribers: ${subscribers}`);
         for (const subscriber of subscribers) {
           const f = await req.formData()
           console.log(3);
