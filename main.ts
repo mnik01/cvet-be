@@ -4,6 +4,7 @@ import {
     TelegramBot,
     UpdateType,
 } from "https://deno.land/x/telegram_bot_api@0.4.0/mod.ts";
+import {readerFromStreamReader} from "https://deno.land/std/io/mod.ts";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -44,18 +45,16 @@ serve(async (req: Request) => {
         return new Response(null, { headers: corsHeaders })
     }
     if (req.method === 'POST') {
-        // const body = req.body;
-        const blob = await req.blob();
+        const f = await req.formData()
+
+        for (const v of f.entries())
+            console.log(v);
 
         try {
             for (const subscriber of subscribers) {
-              // await bot.sendMessage({
-              //   chat_id: subscriber,
-              //   text: 'Пришла заявка',
-              // })
               await bot.sendDocument({
                 chat_id: subscriber,
-                document: blob,
+                document: new File(['blob'], 'name.png'),
                 thumb: "attach://file",
                 caption: 'Пришла заявка',
                 // attachments: {
