@@ -4,77 +4,70 @@ import {
     TelegramBot,
     UpdateType,
 } from "https://deno.land/x/telegram_bot_api@0.4.0/mod.ts";
-import {readerFromStreamReader} from "https://deno.land/std/io/mod.ts";
 
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST",
-    "Access-Control-Allow-Headers": "content-type",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST",
+  "Access-Control-Allow-Headers": "content-type",
 }
 
 const TOKEN = Deno.env.get("BOT_TOKEN");
 if (!TOKEN) throw new Error("Bot token is not provided");
-const bot = new TelegramBot(TOKEN);
 
+const bot = new TelegramBot(TOKEN);
 const subscribers: number[] = [];
 
-bot.on(UpdateType.Message, async ({ message }) => {
+bot.on(UpdateType.Message, ({ message }) => {
   const { id } = message.chat;
 
   if (subscribers.includes(id)) {
-      await bot.sendMessage({
-          chat_id: id,
-          text: 'Вы уже подписаны на получение заявки для распечатки',
-      });
+    bot.sendMessage({
+      chat_id: id,
+      text: 'Вы уже подписаны на получение заявки для распечатки',
+    });
   } else {
-      subscribers.push(id)
-      await bot.sendMessage({
-          chat_id: id,
-          text: 'Теперь вы будете получать заявки на распечатку',
-      });
+    subscribers.push(id)
+    bot.sendMessage({
+      chat_id: id,
+      text: 'Теперь вы будете получать заявки на распечатку',
+    });
   }
 });
 
 bot.run({
-    polling: true,
+  polling: true,
 });
 
 
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
-        return new Response(null, { headers: corsHeaders })
+        return new Response(null, { status: 200, headers: corsHeaders })
     }
     if (req.method === 'POST') {
       try {
-        console.log(`subscribers: ${subscribers}`);
-        for (const subscriber of subscribers) {
-          const f = await req.formData()
-          console.log(3);
-          for (const attachment of f.entries()) {
-            console.log(2);
-            const [name, blob] = attachment;
+        const f = await req.formData()
+        for (const attachment of f.entries()) {
+          const [name, blob] = attachment;
+          console.log(`File accepted: ${name} `, blob);
+          console.log(`subscribers: ${subscribers}`);
 
-            // const a: any = {};
-            // a[name] = blob;
-            console.log(name, blob);
-            await bot.sendDocument({
+          for (const subscriber of subscribers) {
+            bot.sendDocument({
               chat_id: subscriber,
               document: new File([blob], name),
               caption: 'Пришла заявка',
-              // attachments: a,
             });
-            console.log(1);
           }
         }
 
         return new Response(null, {
-            headers: corsHeaders,
-            status: 200,
+          headers: corsHeaders,
+          status: 200,
         })
-      } catch {
+      } catch (error) {
+        console.error(error)
         return new Response(null, { status: 500, statusText: 'Internal server error' })
       }
-
     }
 
     return new Response(null, {status: 404, statusText: 'No such method'})
